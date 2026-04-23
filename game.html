@@ -36,37 +36,66 @@ if(localStorage.getItem("theme") !== "light"){
   document.body.classList.add("dark-mode");
 }
 
+function attachImageFallback(imgEl, candidates){
+  if(!imgEl || !Array.isArray(candidates) || candidates.length === 0) return;
+  let index = 0;
+  imgEl.src = candidates[index];
+  imgEl.onerror = ()=>{
+    index += 1;
+    if(index < candidates.length){
+      imgEl.src = candidates[index];
+    } else {
+      imgEl.onerror = null;
+    }
+  };
+}
+
+function buildIconCandidatesFromName(name){
+  const n = (name || "").trim();
+  const lower = n.toLowerCase();
+  return [...new Set([
+    `${n}.jpg`, `${lower}.jpg`,
+    `${n}.png`, `${lower}.png`,
+    `${n}.jpeg`, `${lower}.jpeg`
+  ])];
+}
+
+function buildScreenshotCandidates(iconCandidates, shotNumber){
+  const extOrder = ["jpg", "png", "jpeg"];
+  const list = [];
+
+  (iconCandidates || []).forEach(path=>{
+    const cleanPath = String(path || "").split("?")[0];
+    const file = cleanPath.split("/").pop() || "";
+    if(!file) return;
+    const hasExt = file.includes(".");
+    const base = hasExt ? file.substring(0, file.lastIndexOf(".")) : file;
+    const lowerBase = base.toLowerCase();
+    const ext = hasExt ? file.substring(file.lastIndexOf(".") + 1).toLowerCase() : "jpg";
+
+    [ext, ...extOrder.filter(e=>e !== ext)].forEach(candidateExt=>{
+      list.push(`${base}-s${shotNumber}.${candidateExt}`);
+      list.push(`${lowerBase}-s${shotNumber}.${candidateExt}`);
+    });
+  });
+
+  return [...new Set(list)];
+}
+
 const game = JSON.parse(localStorage.getItem("selectedGame"));
 if(game){
   document.getElementById("gameTitle").innerText = game.name;
   document.getElementById("gameDesc").innerText = game.desc;
-  const iconCandidates = (game.iconCandidates && game.iconCandidates.length) ? game.iconCandidates : [game.icon];
+  const iconCandidates = (game.iconCandidates && game.iconCandidates.length)
+    ? game.iconCandidates
+    : (game.icon ? [game.icon] : buildIconCandidatesFromName(game.name));
   const gameIconEl = document.getElementById("gameIcon");
-  let iconIndex = 0;
-  gameIconEl.src = iconCandidates[iconIndex];
-  gameIconEl.onerror = ()=>{
-    iconIndex += 1;
-    if(iconIndex < iconCandidates.length){
-      gameIconEl.src = iconCandidates[iconIndex];
-    } else {
-      gameIconEl.onerror = null;
-    }
-  };
-
-  // Screenshot naming pattern: game-s1, game-s2, game-s3, game-s4
-  const iconPath = (iconCandidates[0] || "").split("?")[0];
-  const iconFile = iconPath.split("/").pop() || "";
-  const hasExt = iconFile.includes(".");
-  const baseName = hasExt ? iconFile.substring(0, iconFile.lastIndexOf(".")) : iconFile;
-  const ext = hasExt ? iconFile.substring(iconFile.lastIndexOf(".") + 1) : "jpg";
+  attachImageFallback(gameIconEl, iconCandidates);
 
   for(let i=1;i<=4;i++){
     const imgEl = document.getElementById("s"+i);
-    imgEl.src = `${baseName}-s${i}.${ext}`;
-    imgEl.onerror = ()=>{
-      imgEl.onerror = null;
-      imgEl.src = iconCandidates[0];
-    };
+    const screenshotCandidates = buildScreenshotCandidates(iconCandidates, i);
+    attachImageFallback(imgEl, [...screenshotCandidates, ...iconCandidates]);
     imgEl.alt = `${game.name} preview ${i}`;
   }
 
