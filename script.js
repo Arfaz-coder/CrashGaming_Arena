@@ -533,7 +533,27 @@ function renderTopGames(){
   if(!row) return;
   row.innerHTML = "";
 
-  getAvailableGames().slice(0, 10).forEach(game=>{
+  const fixedTopGames = [
+    "Deadshot",
+    "smash karts",
+    "Fly Or Die",
+    "Swordmasters.io",
+    "Lordz",
+    "Cryzen",
+    "Snowball.io",
+    "Fall-io",
+    "obby roads",
+    "Slow Road"
+  ];
+
+  const availableByName = new Map(
+    getAvailableGames().map(game=>[normalizeName(game.name), game])
+  );
+
+  fixedTopGames
+    .map(name=>availableByName.get(normalizeName(name)))
+    .filter(Boolean)
+    .forEach(game=>{
     const card = document.createElement("article");
     card.className = "top-game-card";
     card.innerHTML = `<img alt="${game.name}"><p>${game.name}</p>`;
@@ -541,7 +561,7 @@ function renderTopGames(){
     attachImageFallback(img, game.iconCandidates);
     card.onclick = ()=> openGameByName(game.name);
     row.appendChild(card);
-  });
+    });
 }
 
 // Search
